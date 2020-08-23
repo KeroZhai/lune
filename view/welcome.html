@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Welcome</title>
+    <style type="text/css">
+        html {
+            margin: 0;
+            padding: 0;
+            font-family: "Raleway", Microsoft YaHei;
+            -webkit-font-smoothing: antialiased;
+            background-color: #f5f6f7;
+        }
+
+        .box {
+            width: 600px;
+            position: absolute;
+            left: 50%;
+            top: 40%;
+            margin-left: -300px; 
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        .logo {
+            width: 50px;
+        }
+
+        .badge-container {
+            margin: 20px 0;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .box h1, .box p {
+            text-align: center;
+        }
+
+        .box p {
+            width: 400px;
+        }
+    </style>
+</head>
+<body>
+    <div class="box">
+        <img class="logo" src="/static/image/logo.png"></img>
+        <br/><br/>
+        <h1>Welcome to use Lune</h1>
+        <div class="badge-container">
+            <img src="https://img.shields.io/github/forks/KeroZhai/lune?logo=github"></img>
+            <img src="https://img.shields.io/github/stars/KeroZhai/lune?logo=github"></img>
+        </div>
+        <br/><br/>
+        <p>Lune is a simple PHP web framework which allows you to create a tiny web product <b>fast and simply</b>.</p>
+    </div>
+</body>
+</html>

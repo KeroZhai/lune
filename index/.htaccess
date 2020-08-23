@@ -1,0 +1,5 @@
+RewriteEngine on
+RewriteBase /
+
+RewriteCond %{REQUEST_URI} !^/static/
+RewriteRule ^(.*)$ index.php [L,QSA]
