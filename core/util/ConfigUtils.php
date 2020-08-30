@@ -20,14 +20,14 @@ class ConfigUtils {
         return ConfigUtils::$config;
     }
 
-    public static function getSection(String $sectionName) {
+    public static function getSection(string $sectionName) {
         $config = ConfigUtils::getConfig();
         if (isset($config[$sectionName])) {
             return $config[$sectionName];
         }
     }
 
-    public static function getValue(String $sectionName, String $key, String $default=null) {
+    public static function getValue(string $sectionName, string $key, $default=null) {
         $section = ConfigUtils::getSection($sectionName);
         if (isset($section[$key])) {
             return $section[$key];
@@ -35,30 +35,25 @@ class ConfigUtils {
         return $default;
     }
 
-    public static function getBool(String $sectionName, String $key, bool $default=null) {
-        $value = ConfigUtils::getValue($sectionName, $key);
-        if ($value === "1") {
+    public static function getBool(string $sectionName, string $key, bool $default=null) {
+        $value = ConfigUtils::getValue($sectionName, $key, $default);
+        if ($value === "1" || $value === true) {
             return true;
-        } else if ($value === "") {
+        } else if ($value === "" || $value === false) {
             return false;
         } else {
-            throw new \Exception("Cannot parse string $value to bool");
+            throw new \Exception("Cannot parse string \"$value\" to bool");
         }
-        return $default;
     }
 
-    public static function getInt(String $sectionName, String $key, int $default=null) {
-        if ($value = ConfigUtils::getValue($sectionName, $key)) {
-           return intval($value);
-        }
-        return $default;
+    public static function getInt(string $sectionName, string $key, int $default=null) {
+        $value = ConfigUtils::getValue($sectionName, $key, $default);
+        return intval($value);
     }
 
     public static function getArray(string $sectionName, string $key, array $default=null) {
-        if ($value = ConfigUtils::getValue($sectionName, $key)) {
-            return StringUtils::split(",", $value);
-        }
-        return $default;
+        $value = ConfigUtils::getValue($sectionName, $key, $default);
+        return StringUtils::split(",", $value);
     }
 
 }
