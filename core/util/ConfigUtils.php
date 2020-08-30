@@ -3,6 +3,7 @@
 namespace app\core\util;
 
 use app\core\exception\ConfigFileNotFoundException;
+use app\core\exception\NoSuchSectionException;
 
 class ConfigUtils {
 
@@ -10,7 +11,7 @@ class ConfigUtils {
     public static $config;
 
     public static function getConfig() {
-        if (!isset(ConfigUtils::$config)) {
+        if (ConfigUtils::$config === null) {
             if (file_exists(ConfigUtils::$CONFIG_PATH)) {
                 ConfigUtils::$config = parse_ini_file(ConfigUtils::$CONFIG_PATH, true);
             } else {
@@ -22,22 +23,26 @@ class ConfigUtils {
 
     public static function getSection(string $sectionName) {
         $config = ConfigUtils::getConfig();
-        if (isset($config[$sectionName])) {
+        if ($config[$sectionName] !== null) {
             return $config[$sectionName];
+        } else {
+            throw new NoSuchSectionException($sectionName);
         }
     }
 
     public static function getValue(string $sectionName, string $key, $default=null) {
         $section = ConfigUtils::getSection($sectionName);
-        if (isset($section[$key])) {
+        if ($section[$key] !== null) {
             return $section[$key];
         }
         return $default;
     }
 
     public static function getBool(string $sectionName, string $key, bool $default=null) {
-        $value = ConfigUtils::getValue($sectionName, $key, $default);
-        if ($value === "1" || $value === true) {
+        $value = ConfigUtils::getValue($sectionName, $key);
+        if ($value === null) {
+            return $default;
+        } else if ($value === "1" || $value === true) {
             return true;
         } else if ($value === "" || $value === false) {
             return false;
@@ -48,12 +53,12 @@ class ConfigUtils {
 
     public static function getInt(string $sectionName, string $key, int $default=null) {
         $value = ConfigUtils::getValue($sectionName, $key, $default);
-        return intval($value);
+        return $value === null ? $default : intval($value);
     }
 
     public static function getArray(string $sectionName, string $key, array $default=null) {
-        $value = ConfigUtils::getValue($sectionName, $key, $default);
-        return StringUtils::split(",", $value);
+        $value = ConfigUtils::getValue($sectionName, $key);
+        return $value === null ? $default : StringUtils::split(",", $value);
     }
 
 }
