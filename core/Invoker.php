@@ -113,7 +113,7 @@ class Invoker {
 
     private static function getParamNamesToInject(\ReflectionMethod $method) {
         $paramNamesToInject = [];
-        $injectedTagValue = ReflectionUtils::getDocCommentTag($method->getDocComment(), "@Injected");
+        $injectedTagValue = ReflectionUtils::getDocCommentTag($method->getDocComment(), "@injected");
         if ($injectedTagValue) {
             $paramNamesToInject = explode(" ", $injectedTagValue);
         }

@@ -53,7 +53,7 @@ class Repository {
         $placeholders = [];
         foreach ($properties as $property) {
             if ($value = $property->getValue($entity)) {
-                $fieldName = ReflectionUtils::getDocCommentTag($property->getDocComment(), "@ColumnName");
+                $fieldName = ReflectionUtils::getDocCommentTag($property->getDocComment(), "@column");
                 $fieldNames[] = $fieldName ? $fieldName : $this->camelToUnderScore($property->getName());
                 $fieldValues[] = $value;
                 $placeholders[] = "?";
@@ -78,7 +78,7 @@ class Repository {
                     $PK = $value;
                     continue;
                 }
-                $fieldName = ReflectionUtils::getDocCommentTag($property->getDocComment(), "@ColumnName");
+                $fieldName = ReflectionUtils::getDocCommentTag($property->getDocComment(), "@column");
                 $fieldName = $fieldName ? $fieldName : $this->camelToUnderScore($property->getName());
                 $fieldValues[] = $value;
                 $sql .= "$fieldName = ?, ";
@@ -237,9 +237,9 @@ class Repository {
      *
      */
     private function getTableName($objOrClassName) {
-        $tableName = ReflectionUtils::getDocCommentTag(ReflectionUtils::getClassDocComment($objOrClassName), "@TableName");
+        $tableName = ReflectionUtils::getDocCommentTag(ReflectionUtils::getClassDocComment($objOrClassName), "@table");
         if (!$tableName) {
-            throw new \Exception("No @TableName found for class " . ReflectionUtils::getClass($objOrClassName)->getName());
+            throw new \Exception("No @table found for class " . ReflectionUtils::getClass($objOrClassName)->getName());
         }
         return $tableName;
     }

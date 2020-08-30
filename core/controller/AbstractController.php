@@ -15,10 +15,10 @@ class AbstractController {
 
     /**
      * 前置拦截器, 验证是否登录
-     * 只对具有 @RequiresAuthentication 标记的接口方法生效
+     * 只对具有 @requiresAuthentication 标记的接口方法生效
      * 
-     * @Before
-     * @WithTag @RequiresAuthentication
+     * @before
+     * @with @requiresAuthentication
      */
     function authenticate() {
         if (!AuthUtils::isLoggedIn()) {
@@ -28,10 +28,10 @@ class AbstractController {
 
     /**
      * 前置拦截器, 验证是否具有指定的角色
-     * 只对具有 @RequiresRole 标记的接口方法生效
+     * 只对具有 @requiresRole 标记的接口方法生效
      * 
-     * @Before
-     * @WithTag @RequiresRole
+     * @before
+     * @with @requiresRole
      */
     function authRole($__method__) {
         $requiresRole = ReflectionUtils::getDocCommentTag($__method__->getDocComment(), "@RequiresRole");
@@ -45,11 +45,11 @@ class AbstractController {
 
     /**
      * 前置拦截器, 自动开启事务
-     * 只对具有 @Transactional 标记的接口方法生效
+     * 只对具有 @transactional 标记的接口方法生效
      * 
-     * @Before
-     * @WithTag @Transactional
-     * @Injected repository
+     * @before
+     * @with @transactional
+     * @injected repository
      */
     function beginTransaction(Repository $repository) {
         $repository->beginTransaction();
@@ -57,11 +57,11 @@ class AbstractController {
 
     /**
      * 后置拦截器, 自动提交事务
-     * 只对具有 @Transactional 标记的接口方法生效
+     * 只对具有 @transactional 标记的接口方法生效
      * 
-     * @After
-     * @WithTag @Transactional
-     * @Injected repository
+     * @after
+     * @with @transactional
+     * @injected repository
      */
     function commitTransaction(Repository $repository) {
         $repository->commit();

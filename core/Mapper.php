@@ -122,9 +122,9 @@ class Mapper {
                 } else if (strpos($docComment, "@filter")) {
                     $filterMethods[] = $methodName;
                 } else if (strpos($docComment, "@before")) {
-                    $beforeMethods[$methodName] = ReflectionUtils::getDocCommentTag($docComment, "@withTag");
+                    $beforeMethods[$methodName] = ReflectionUtils::getDocCommentTag($docComment, "@with");
                 } else if (strpos($docComment, "@after")) {
-                    $afterMethods[$methodName] = ReflectionUtils::getDocCommentTag($docComment, "@withTag");
+                    $afterMethods[$methodName] = ReflectionUtils::getDocCommentTag($docComment, "@with");
                 }
             }
         }
