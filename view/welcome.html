@@ -1,12 +1,30 @@
 <!DOCTYPE html>
 <html>
+
 <head>
     <title>Welcome</title>
     <style type="text/css">
+        @font-face {
+            font-family: "Source Sans Pro";
+            src: local("Source Sans Pro"), url("/static/font/source-sans-pro/SourceSansPro-Regular.ttf");
+        }
+
+        @font-face {
+            font-family: "Source Sans Pro";
+            src: local("Source Sans Pro Light"), url("/static/font/source-sans-pro/SourceSansPro-Light.ttf");
+            font-weight: 300;
+        }
+
+        @font-face {
+            font-family: "Source Sans Pro";
+            src: local("Source Sans Pro Semibold"), url("/static/font/source-sans-pro/SourceSansPro-Semibold.ttf");
+            font-weight: 600;
+        }
+
         html {
             margin: 0;
             padding: 0;
-            font-family: "Raleway", Microsoft YaHei;
+            font-family: "Source Sans Pro", Arial, sans-serif;
             -webkit-font-smoothing: antialiased;
             background-color: #f5f6f7;
         }
@@ -15,15 +33,15 @@
             width: 600px;
             position: absolute;
             left: 50%;
-            top: 40%;
-            margin-left: -300px; 
+            top: 30%;
+            margin-left: -300px;
             display: flex;
             flex-direction: column;
             align-items: center;
         }
 
         .logo {
-            width: 50px;
+            width: 100px;
         }
 
         .badge-container {
@@ -32,26 +50,39 @@
             justify-content: space-between;
         }
 
-        .box h1, .box p {
+        .box h1,
+        .box p {
             text-align: center;
+        }
+
+        .box h1 {
+            font-weight: lighter;
+            font-size: 4em;
         }
 
         .box p {
             width: 400px;
+            font-weight: lighter;
+            font-size: 1.5em;
+        }
+
+        .box p b {
+            font-weight: normal;
         }
     </style>
 </head>
+
 <body>
     <div class="box">
         <img class="logo" src="/static/image/logo.png"></img>
-        <br/><br/>
+        <br />
         <h1>Welcome to use Lune</h1>
-        <div class="badge-container">
+        <p>Lune is a simple PHP web framework which allows you to create a tiny web product <b>fast&nbsp;and&nbsp;simply</b>.</p>
+        <!-- <div class="badge-container">
             <img src="https://img.shields.io/github/forks/KeroZhai/lune?logo=github"></img>
             <img src="https://img.shields.io/github/stars/KeroZhai/lune?logo=github"></img>
-        </div>
-        <br/><br/>
-        <p>Lune is a simple PHP web framework which allows you to create a tiny web product <b>fast and simply</b>.</p>
+        </div> -->
     </div>
 </body>
+
 </html>
