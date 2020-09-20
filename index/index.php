@@ -1,7 +1,7 @@
 <?php
 
-namespace app\core;
+namespace app\lune\core;
 
-require "../core/App.php";
+require "../lune/core/App.php";
 
 (new App())->start();
