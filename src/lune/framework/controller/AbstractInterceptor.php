@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\controller;
+namespace lune\framework\controller;
 
 abstract class AbstractInterceptor implements Interceptor {
 

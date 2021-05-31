@@ -1,11 +1,11 @@
 <?php
 
-namespace app\lune\framework\controller;
+namespace lune\framework\controller;
 
-use app\lune\framework\util\AuthUtils;
-use app\lune\framework\util\ReflectionUtils;
-use app\lune\framework\repository\Repository;
-use app\lune\framework\response\StatusResult;
+use lune\framework\util\AuthUtils;
+use lune\framework\util\ReflectionUtils;
+use lune\framework\repository\Repository;
+use lune\framework\response\StatusResult;
 
 /**
  * 一个抽象的控制器, 没有实际的接口方法

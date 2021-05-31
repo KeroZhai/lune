@@ -1,8 +1,8 @@
 <?php
 
-namespace app\lune\framework\repository;
+namespace lune\framework\repository;
 
-use app\lune\framework\util\ConfigUtils;
+use lune\framework\util\ConfigUtils;
 
 class MysqlDB {
     

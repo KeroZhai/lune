@@ -1,13 +1,13 @@
 <?php
 
-namespace app\lune\framework\core;
+namespace lune\framework\core;
 
-use app\lune\framework\util\ReflectionUtils;
-use app\lune\framework\exception\InjectionException;
-use app\lune\framework\exception\InitializationException;
-use app\lune\framework\request\UploadedFile;
-use app\lune\framework\request\UploadedFiles;
-use app\lune\framework\response\Response;
+use lune\framework\util\ReflectionUtils;
+use lune\framework\exception\InjectionException;
+use lune\framework\exception\InitializationException;
+use lune\framework\request\UploadedFile;
+use lune\framework\request\UploadedFiles;
+use lune\framework\response\Response;
 
 /**
  * 方法执行器

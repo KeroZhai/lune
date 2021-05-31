@@ -1,10 +1,10 @@
 <?php
 
-namespace app\lune\framework\core;
+namespace lune\framework\core;
 
-use app\lune\framework\io\File;
-use app\lune\framework\response\Response;
-use app\lune\framework\util\JsonUtils;
+use lune\framework\io\File;
+use lune\framework\response\Response;
+use lune\framework\util\JsonUtils;
 
 class ResponseHandler {
 

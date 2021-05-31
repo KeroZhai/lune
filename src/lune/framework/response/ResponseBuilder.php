@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\response;
+namespace lune\framework\response;
 
 class ResponseBuilder {
 

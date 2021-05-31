@@ -1,35 +1,39 @@
 <?php
 
-namespace app\lune\framework\core;
+namespace lune\framework\core;
 
-use app\lune\framework\request\Request;
-use app\lune\framework\response\Response;
-use app\lune\framework\request\UploadedFile;
-use app\lune\framework\request\UploadedFiles;
+use lune\framework\request\Request;
+use lune\framework\request\UploadedFile;
+use lune\framework\request\UploadedFiles;
+use lune\framework\response\Response;
 
 /**
  * 处理请求
  */
-class RequestHandler {
+class RequestHandler
+{
 
-    public static function handle(object $controller, \ReflectionMethod $method, $methodMappings, Request $request) {
+    public static function handle(object $controller, \ReflectionMethod $method, MappingInfo $mappingInfo, Request $request)
+    {
         try {
             $data = RequestHandler::getMergedDataForMethod($request);
-            Invoker::invokeFilterMethods($controller, $methodMappings["filterMethods"], $data);
-            $beforeResult = RequestHandler::handleResult(Invoker::invokeInterceptorMethods($controller, $methodMappings["beforeMethods"], $method, $data));
-            if ($beforeResult === null) {
-                $apiResult = RequestHandler::handleResult(Invoker::invokeMethod($controller, $method, $data));
-                RequestHandler::handleResult(Invoker::invokeInterceptorMethods($controller, $methodMappings["afterMethods"], $method, $data));
-                return $apiResult === null ? Response::ok() : $apiResult;
-            } else {
-                return $beforeResult;
-            }
+            // Invoker::invokeFilterMethods($controller, $methodMappings["filterMethods"], $data);
+            // $beforeResult = RequestHandler::handleResult(Invoker::invokeInterceptorMethods($controller, $methodMappings["beforeMethods"], $method, $data));
+            // if ($beforeResult === null) {
+            //     $apiResult = RequestHandler::handleResult(Invoker::invokeMethod($controller, $method, $data));
+            //     RequestHandler::handleResult(Invoker::invokeInterceptorMethods($controller, $methodMappings["afterMethods"], $method, $data));
+            //     return $apiResult === null ? Response::ok() : $apiResult;
+            // } else {
+            //     return $beforeResult;
+            // }
+            return RequestHandler::handleResult(Invoker::invokeMethod($controller, $method, $data));
         } catch (\Throwable $throwable) {
             return Response::error($throwable->getMessage());
         }
     }
 
-    private static function getMergedDataForMethod(Request $request) {
+    private static function getMergedDataForMethod(Request $request)
+    {
         $queryParams = $request->getQueryParams();
         $body = $request->getBody();
         $mergedData = $queryParams;
@@ -42,7 +46,8 @@ class RequestHandler {
         return $mergedData;
     }
 
-    private static function splitUploadedFiles(array $file, UploadedFiles $files = null) {
+    private static function splitUploadedFiles(array $file, UploadedFiles $files = null)
+    {
         $temp = [];
         if ($files === null) {
             $files = new UploadedFiles();
@@ -58,9 +63,10 @@ class RequestHandler {
         return $files;
     }
 
-    private static function handleResult($result) {
+    private static function handleResult($result): Response
+    {
         if ($result === null) {
-            return null;
+            return Response::ok();
         }
         if ($result instanceof Response) {
             return $result;
@@ -75,11 +81,12 @@ class RequestHandler {
         return Response::ok($result);
     }
 
-    private static function getViewContent(string $path, string $type) {
+    private static function getViewContent(string $path, string $type)
+    {
         if (file_exists($path)) {
             if ($type === "PHP") {
                 ob_start();
-                include($path);
+                include $path;
                 return ob_get_clean();
             } else {
                 return file_get_contents($path);
@@ -88,7 +95,8 @@ class RequestHandler {
         return false;
     }
 
-    private static function tryGetViewType($result) {
+    private static function tryGetViewType($result)
+    {
         if (is_string($result)) {
             if (preg_match("/.*\.php/", $result)) {
                 return "PHP";

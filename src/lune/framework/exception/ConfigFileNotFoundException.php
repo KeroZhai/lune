@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\exception;
+namespace lune\framework\exception;
 
 class ConfigFileNotFoundException extends \Exception {
 

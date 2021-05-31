@@ -1,27 +1,39 @@
 <?php
 
-namespace app\lune\framework\util;
+namespace lune\framework\util;
 
-class PathUtils {
-
-
-    public static function implode(string ...$segment) {
-        return implode('/', $segment);
+class PathUtils
+{
+    public static function getSrcPath(): string
+    {
+        return PathUtils::implode(APP_ROOT, "src");
     }
 
-    public static function explode(string $paths) {
-        return explode('/', $paths);
+    public static function isAbsolutePath(string $path): bool
+    {
+        return StringUtils::startsWith($path, DIRECTORY_SEPARATOR);
     }
 
-    public static function pathToNamespace(string $path, bool $isClass=false, string $root = APP_ROOT) {
+    public static function implode(string ...$segment)
+    {
+        return implode(DIRECTORY_SEPARATOR, $segment);
+    }
+
+    public static function explode(string $paths)
+    {
+        return explode(DIRECTORY_SEPARATOR, $paths);
+    }
+
+    public static function pathToNamespace(string $path, bool $isClass = false)
+    {
         if ($isClass) {
             $path = PathUtils::implode(dirname($path), basename($path, ".php"));
         }
-        return implode("\\", PathUtils::explode(str_replace($root, "app", $path)));
+        return str_replace(DIRECTORY_SEPARATOR, "\\", str_replace(PathUtils::getSrcPath(), "", $path));
     }
 
-    public static function namespaceToPath(string $namespace) {
+    public static function namespaceToPath(string $namespace)
+    {
         PathUtils::implode(...explode("\\", $namespace));
     }
-
 }

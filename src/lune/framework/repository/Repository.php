@@ -1,10 +1,10 @@
 <?php
 
-namespace app\lune\framework\repository;
+namespace lune\framework\repository;
 
-use app\lune\framework\exception\InvalidStateException;
-use app\lune\framework\pagination\PageInfo;
-use app\lune\framework\util\ReflectionUtils;
+use lune\framework\exception\InvalidStateException;
+use lune\framework\pagination\PageInfo;
+use lune\framework\util\ReflectionUtils;
 
 class Repository {
 

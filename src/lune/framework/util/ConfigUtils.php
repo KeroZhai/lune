@@ -1,9 +1,9 @@
 <?php
 
-namespace app\lune\framework\util;
+namespace lune\framework\util;
 
-use app\lune\framework\exception\ConfigFileNotFoundException;
-use app\lune\framework\exception\NoSuchSectionException;
+use lune\framework\exception\ConfigFileNotFoundException;
+use lune\framework\exception\NoSuchSectionException;
 
 class ConfigUtils {
 
@@ -58,7 +58,7 @@ class ConfigUtils {
 
     public static function getArray(string $sectionName, string $key, array $default=null) {
         $value = ConfigUtils::getValue($sectionName, $key);
-        return $value === null ? $default : StringUtils::split(",", $value);
+        return $value === null ? $default : StringUtils::split($value, ",");
     }
 
 }

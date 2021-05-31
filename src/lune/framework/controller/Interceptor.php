@@ -1,8 +1,8 @@
 <?php
 
-namespace app\lune\framework\controller;
+namespace lune\framework\controller;
 
-use app\lune\framework\request\Request;
+use lune\framework\request\Request;
 
 interface Interceptor {
 

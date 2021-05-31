@@ -1,8 +1,8 @@
 <?php
 
-namespace app\lune\framework\response;
+namespace lune\framework\response;
 
-use app\lune\framework\util\ConfigUtils;
+use lune\framework\util\ConfigUtils;
 
 class Response {
 

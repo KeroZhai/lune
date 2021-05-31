@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\pagination;
+namespace lune\framework\pagination;
 
 class PageInfoBuilder {
 

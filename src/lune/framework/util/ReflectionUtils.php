@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\util;
+namespace lune\framework\util;
 
 class ReflectionUtils {
 

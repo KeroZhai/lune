@@ -1,5 +1,5 @@
 <?php
-namespace app\lune\framework\response;
+namespace lune\framework\response;
 
 /**
  * 返回结果封装对象

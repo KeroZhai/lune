@@ -1,9 +1,23 @@
 <?php
 
-namespace app\lune\framework\util;
+namespace lune\framework\util;
 
 class StringUtils {
 
+    public static function startsWith(string $haystack, string $needle): bool
+    {
+        $length = strlen($needle);
+        return substr($haystack, 0, $length) === $needle;
+    }
+
+    public static function endsWith(string $haystack, string $needle): bool
+    {
+        $length = strlen($needle);
+        if(!$length) {
+            return true;
+        }
+        return substr($haystack, -$length) === $needle;
+    }
 
     public static function isEmpty(string $string) {
         return $string === null || $string === "";
@@ -24,7 +38,7 @@ class StringUtils {
     /**
      * 不会过滤空字符串
      */
-    public static function split(string $delimiter, string $string, bool $trimString=true) {
+    public static function split(string $string, string $delimiter, bool $trimString=true) {
         if ($trimString) {
             $result = preg_split("/(\s*$delimiter\s*)/", $string);
             $count = count($result);

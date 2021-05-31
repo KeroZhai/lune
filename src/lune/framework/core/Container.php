@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\core;
+namespace lune\framework\core;
 
 /**
  * 一个简单的容器

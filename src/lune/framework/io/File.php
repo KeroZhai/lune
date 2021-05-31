@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\io;
+namespace lune\framework\io;
 
 class File {
 

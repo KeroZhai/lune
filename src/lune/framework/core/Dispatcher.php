@@ -1,11 +1,12 @@
 <?php
 
-namespace app\lune\framework\core;
+namespace lune\framework\core;
 
-use app\lune\framework\request\Request;
-use app\lune\framework\util\ConfigUtils;
-use app\lune\framework\response\Response;
-use app\lune\framework\util\ReflectionUtils;
+use lune\framework\request\Request;
+use lune\framework\util\ConfigUtils;
+use lune\framework\response\Response;
+use lune\framework\util\ReflectionUtils;
+use ReflectionMethod;
 
 /**
  * 请求分发器
@@ -20,75 +21,65 @@ final class Dispatcher {
     private $operation;
     private $controllerClassName;
     private $methodMappers;
+    private $registry;
 
-    public function __construct(Request $request) {
+    public function __construct() {
         $this->isProd = ConfigUtils::getValue("Application", "env", "dev") === "prod";
-        $this->request = $request;
-        $this->initMappers();
-    }
-
-    private function initMappers() {
-        $mapper = Mapper::getMapper($this->isProd);
-        $requestURI = $this->request->getUri();
-        if ($requestURI === "") {
-            $classMapperKey = "V/";
-            $operation = "/";
-        } else if (preg_match_all("/\/api\/([0-9a-zA-Z\-_]*)((\/[0-9a-zA-Z\-_]*)*)/", $requestURI, $match)) {
-            $classMapperKey = "C/" . $match[1][0];
-            $operation = $match[2][0] ? $match[2][0] : "/";
-        } else if ($times = preg_match_all("/(\/[0-9a-zA-Z\-_]*)/", $requestURI, $match)) {
-            $classMapperKey = "V";
-            if ($times == 1) {
-                $classMapperKey .= "/";
-                $operation = $match[1][0];
-            } else {
-                $classMapperKey .= $match[1][0];
-                $operation = "";
-                for ($i = 1; $i < count($match[1]); $i++) {
-                    $operation .= $match[1][$i];
-                }
-            }
-        } else {
-            return false;
-        }
-        if (isset($mapper[$classMapperKey])) {
-            $classMapper = $mapper[$classMapperKey];
-            $this->operation = $operation;
-            $this->controllerClassName = $classMapper->className;
-            $this->methodMappers = $classMapper->methodMappers;
-        }
+        $this->registry = Mapper::getReigistry($this->isProd);
     }
 
     /**
      * 将请求分发给对应的控制器, 如果找不到则返回404
      */
-    public function dispatch() {
-        $controller = $this->getController();
-        if ($controller !== null) {
-            $methodMapper = $this->getMethodMapper();
-            if ($methodMapper !== null) {
-                if ($methodMapper === false) {
-                    return Response::builder()->statusCode(Response::METHOD_NOT_ALLOWED)->build();
-                } else {
-                    if ($methodMapper->hasPathVariable) {
-                        preg_match_all($methodMapper->pattern, $this->operation, $paramValueMatch);
-                        $pathVariableNames = $methodMapper->pathVariableNames;
-                        $queryParams = &$this->request->getQueryParams();
-                        for ($index = 0; $index < count($pathVariableNames); $index++) {
-                            $name = $pathVariableNames[$index];
-                            $value = $paramValueMatch[$index + 1][0];
-                            if (array_key_exists($name, $queryParams)) {
-                                $value .= ", " . $queryParams[$name];
-                            }
-                            $queryParams[$name] = $value;
+    public function dispatch(Request $request)
+    {
+        $mappingInfo = $this->lookupHandlerMethodMappingInfo($request->getUri());
+
+        if ($mappingInfo === null) {
+            return Response::notFound();
+        } else {
+            $method = $request->getMethod();
+            if ($mappingInfo->isRequestMethodAllowed($method)) {
+                if ($mappingInfo->hasPathVariables()) {
+                    preg_match_all($this->patternToRegx($mappingInfo->getPattern()), $request->getUri(), $paramValueMatch);
+                    $pathVariableNames = $mappingInfo->getPathVariableNames();
+                    $queryParams = &$this->request->getQueryParams();
+                    for ($index = 0; $index < count($pathVariableNames); $index++) {
+                        $name = $pathVariableNames[$index];
+                        $value = $paramValueMatch[$index + 1][0];
+                        if (array_key_exists($name, $queryParams)) {
+                            $value .= ", " . $queryParams[$name];
                         }
+                        $queryParams[$name] = $value;
                     }
-                    $method = ReflectionUtils::getClassMethod($controller, $methodMapper->methodName);
-                    return RequestHandler::handle($controller, $method, $this->methodMappers, $this->request);
                 }
+                $handler = Invoker::newInstance($mappingInfo->getClassName());
+                $handlerMethod = ReflectionUtils::getClassMethod($handler, $mappingInfo->getMethodName());
+                return RequestHandler::handle($handler, $handlerMethod, $mappingInfo, $request);
+            } else {
+                return Response::builder()->statusCode(Response::METHOD_NOT_ALLOWED)->build();
             }
         }
-        return Response::notFound();
+    }
+
+    private function lookupHandlerMethodMappingInfo(string $lookupPath): ?MappingInfo
+    {
+        $matchedMappingInfo = $this->registry->get($lookupPath);
+        if ($matchedMappingInfo === null) {
+            $this->registry->forEach(function ($pattern, $mappingInfo) use (&$matchedMappingInfo, $lookupPath) {
+                if (preg_match($this->patternToRegx($pattern), $lookupPath)) {
+                    $matchedMappingInfo = $mappingInfo;
+                    // /page可以直接匹配到/page, 也可以匹配到/{id}, 但前者优先级最高, 所以这里要继续搜索
+                    return true;
+                } 
+            });
+        }
+        return $matchedMappingInfo;
+    }
+
+    private function patternToRegx(string $pattern): string
+    {
+        return "/^" . str_replace("/", "\\/", $pattern) . "\\/?$/";
     }
 
     private function getController() {

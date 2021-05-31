@@ -1,6 +1,6 @@
 <?php
 
-namespace app\lune\framework\request;
+namespace lune\framework\request;
 
 class UploadedFile {
 

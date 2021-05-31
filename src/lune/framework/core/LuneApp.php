@@ -1,13 +1,13 @@
 <?php
 
-namespace app\lune\framework\core;
+namespace lune\framework\core;
 
-use app\lune\framework\request\Request;
-use app\lune\framework\util\CustomSessionHandler;
+use lune\framework\request\Request;
+use lune\framework\util\CustomSessionHandler;
 
 define("APP_ROOT", dirname($_SERVER["DOCUMENT_ROOT"]));
 
-class App {
+class LuneApp {
 
     public function __construct() {
         $this->init();
@@ -15,13 +15,12 @@ class App {
 
     public function start() {
         $request = Container::get(Request::class);
-        $response = (new Dispatcher($request))->dispatch();
+        $response = (new Dispatcher())->dispatch($request);
         ResponseHandler::handle($response);
     }
 
     private function init() {
         $this->initErrorReportLevel();
-        $this->initAutoload();
         $this->initWarningHandler();
         $this->initThrowableHandler();
         $this->initSession();
@@ -29,13 +28,6 @@ class App {
 
     private function initErrorReportLevel() {
         error_reporting(E_ALL & ~E_NOTICE);
-    }
-
-    private function initAutoload() {
-        spl_autoload_register(function ($className) {
-            // map namespace to path
-            require APP_ROOT . '/' . implode('/', explode("\\", substr($className, 4))) . ".php";
-        }, true);
     }
 
     private function initWarningHandler() {
