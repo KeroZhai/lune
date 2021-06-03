@@ -4,6 +4,11 @@ namespace lune\framework\util;
 
 class StringUtils {
 
+    public static function capitalize(string $string): string
+    {
+        return ucfirst($string);
+    }
+
     public static function startsWith(string $haystack, string $needle): bool
     {
         $length = strlen($needle);
@@ -47,6 +52,11 @@ class StringUtils {
             return $result;
         }
         return explode($delimiter, $string);
+    }
+
+    public static function join(array $strings, string $delimiter): string
+    {
+        return implode($delimiter, $strings);
     }
 
 }
