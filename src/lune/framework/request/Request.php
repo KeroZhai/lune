@@ -26,7 +26,7 @@ class Request {
     }
 
     private function initUri() {
-        $this->uri = substr($_SERVER["REQUEST_URI"], -1) == "/" ? substr($_SERVER["REQUEST_URI"], 0 ,-1) : $_SERVER["REQUEST_URI"];
+        $this->uri = $_SERVER["PATH_INFO"] ?? $_SERVER["REQUEST_URI"];
     }
 
     private function initMethod() {
