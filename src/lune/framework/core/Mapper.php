@@ -7,6 +7,7 @@ use lune\framework\annotation\Api;
 use lune\framework\annotation\Mapping;
 use lune\framework\core\registry\InMemoryMappingRegistry;
 use lune\framework\core\exception\MappingException;
+use lune\framework\logging\Logger;
 use lune\framework\util\AnnotationUtils;
 use lune\framework\util\ConfigUtils;
 use lune\framework\util\PathUtils;
@@ -21,50 +22,57 @@ use Reflector;
  */
 class Mapper {
 
-    // private static $mappingRegistryDirectory = PathUtils::implode(APP_ROOT, "runtime", ".mappings");
-    private static $mappingRegistryDirectory = APP_ROOT . DIRECTORY_SEPARATOR . "runtime" . DIRECTORY_SEPARATOR . ".mappings";
+    // private $mappingRegistryDirectory = PathUtils::implode(APP_ROOT, "runtime", ".mappings");
+    private $mappingRegistryDirectory = APP_ROOT . DIRECTORY_SEPARATOR . ".runtime" . DIRECTORY_SEPARATOR . ".mappings";
+    private $logger;
+
+    public function __construct()
+    {
+        $this->logger = Logger::getLogger(Mapper::class);
+    }
 
     /**
      * @var InMemoryMappingRegistry
      */
-    private static $registry;
+    private $registry;
 
-    public static function getReigistry(bool $cacheEnabled) {
-        Mapper::$registry = new InMemoryMappingRegistry();
+    public function getReigistry(bool $cacheEnabled) {
+        
+        $this->registry = new InMemoryMappingRegistry();
 
         if ($cacheEnabled) {
-            Mapper::$registry->load();
+            $this->registry->load();
         } 
-        if (Mapper::$registry->isEmpty()) {
-            Mapper::initHandlerMethods();
+        if ($this->registry->isEmpty()) {
+            $this->initHandlerMethods();
             
             if ($cacheEnabled) {
-                Mapper::$registry->dump();
+                $this->registry->dump();
             }
         }
 
-        return Mapper::$registry;
+        return $this->registry;
     }
 
     /**
      * Scan all controller classes to generate mapper.
      */
-    private static function initHandlerMethods() {
+    private function initHandlerMethods() {
         $patterns = ConfigUtils::getArray("Application", "scan-pattern", ["src/controller/*"]);
         foreach ($patterns as $pattern) {
             $pattern = PathUtils::implode(APP_ROOT, "src", $pattern);
             foreach (glob($pattern) as $path) {
                 if (is_file($path)) {
                     $className = PathUtils::pathToNamespace($path, true);
-                    if (Mapper::isHandler($className)) {
-                        Mapper::detectHandlerMethods($className);
+                    if ($this->isHandler($className)) {
+                        $this->detectHandlerMethods($className);
                     }
                 }
             }
         }
     }
 
-    private static function isHandler(string $className): bool
+    private function isHandler(string $className): bool
     {
         $reflectionClass = new ReflectionClass($className);
 
@@ -75,7 +83,7 @@ class Mapper {
      * Store mapping info in an array.
      * 
      */
-    private static function detectHandlerMethods(string $className) {
+    private function detectHandlerMethods(string $className) {
         $reflectionClass = new ReflectionClass($className);
         $mapping = AnnotationUtils::findMergedAnnotation($reflectionClass, Mapping::class);
         $handlerMappingInfo = new MappingInfo();
@@ -83,25 +91,27 @@ class Mapper {
         $handlerMappingInfo->setPattern($mapping->path);
         $methods = $reflectionClass->getMethods();
         foreach ($methods as $method) {
-            Mapper::registerHandlerMethod(Mapper::getMappingForMethod($method, $handlerMappingInfo));
+            if (($mappingInfo = $this->getMappingForMethod($method, $handlerMappingInfo)) !== null) {
+                $this->registerHandlerMethod($mappingInfo);
+            }
         }
         
     }
 
-    private static function getMappingForMethod(ReflectionMethod $method, MappingInfo $handlerMappingInfo): ?MappingInfo
+    private function getMappingForMethod(ReflectionMethod $method, MappingInfo $handlerMappingInfo): ?MappingInfo
     {
-        $mappingInfo = Mapper::createMappingInfo($method);
+        $mappingInfo = $this->createMappingInfo($method);
 
         if ($mappingInfo !== null) {
             $mappingInfo->setClassName($handlerMappingInfo->getClassName());
             $joinedPattern = $handlerMappingInfo->getPattern() . "/" . $mappingInfo->getPattern();
-            $mappingInfo->setPattern(Mapper::processSlashIfNecessary($joinedPattern));
+            $mappingInfo->setPattern($this->processSlashIfNecessary($joinedPattern));
         }
 
         return $mappingInfo;
     }
 
-    private static function processSlashIfNecessary(string $path): string
+    private function processSlashIfNecessary(string $path): string
     {
         $result = "";
         $segaments = StringUtils::split($path, "/", false);
@@ -113,12 +123,12 @@ class Mapper {
         return $result;
     }
 
-    private static function createMappingInfo(ReflectionMethod $reflectionMethod): ?MappingInfo
+    private function createMappingInfo(ReflectionMethod $reflectionMethod): ?MappingInfo
     {
         $methodMappingInfo = null;
         $mapping = AnnotationUtils::findMergedAnnotation($reflectionMethod, Mapping::class);
 
-        if ($mapping != null) {
+        if ($mapping !== null) {
             $path = $mapping->path;
             $pattern = "";
             $prefix = "";
@@ -138,6 +148,7 @@ class Mapper {
             $methodMappingInfo = new MappingInfo();
             $methodMappingInfo->setMethodName($reflectionMethod->getName());
             $methodMappingInfo->addAllowedRequestMethod($mapping->method);
+            $methodMappingInfo->setPath($path);
             $methodMappingInfo->setPattern($pattern);
             $methodMappingInfo->setPathVariableNames($pathVariableNames);
         }
@@ -146,33 +157,36 @@ class Mapper {
         
     }
 
-    private static function registerHandlerMethod(MappingInfo $mappingInfo)
+    private function registerHandlerMethod(MappingInfo $mappingInfo)
     {
         $pattern = $mappingInfo->getPattern();
-        if (($existed = Mapper::$registry->get($pattern)) !== null) {
-            $currentAllowedRequestMethod = $mappingInfo->getAllowedRequestMethods()[0];
+        $className = $mappingInfo->getClassName();
+        $methodName = $mappingInfo->getMethodName();        
+        $path = $mappingInfo->getPath();
+        $currentAllowedRequestMethod = $mappingInfo->getAllowedRequestMethods()[0];
+        if (($existed = $this->registry->get($pattern)) !== null) {
             if ($existed->isRequestMethodAllowed($currentAllowedRequestMethod)) {
-                $className = $mappingInfo->getClassName();
-                $methodName = $mappingInfo->getMethodName();
+                
                 $duplicatedClassName = $existed->getClassName();
                 $duplicatedMethodName = $existed->getMethodName();
-                throw new MappingException("Failed to map method $className::$methodName(), duplicated with $duplicatedClassName::$duplicatedMethodName()");
+                throw new MappingException("Failed to map path [$currentAllowedRequestMethod] \"$path\" to method $className::$methodName(), duplicated with $duplicatedClassName::$duplicatedMethodName()");
             } else {
                 $existed->addAllowedRequestMethod($currentAllowedRequestMethod);
-                Mapper::$registry->register($pattern, $existed);
+                $this->registry->register($pattern, $existed);
             }
         } else {
-            Mapper::$registry->register($pattern, $mappingInfo);
+            $this->registry->register($pattern, $mappingInfo);
         }
+        $this->logger->debug("Mapped path [$currentAllowedRequestMethod] \"$path\" to $className::$methodName()");
     }
 
     /**
      * Save the mapping info to a file.
      */
-    private static function dumpRegistry() {
-        $fp = fopen(Mapper::$mappingRegistryDirectory, "w");
+    private function dumpRegistry() {
+        $fp = fopen($this->mappingRegistryDirectory, "w");
         if ($fp) {
-            fwrite($fp, serialize(Mapper::$registry));
+            fwrite($fp, serialize($this->registry));
             fclose($fp);
         } else {
             echo "Failed to write mapping info to file. Please make sure Apache has the write permision.";
@@ -180,7 +194,7 @@ class Mapper {
         }  
     }
 
-    private static function getMappingInfos($className) {
+    private function getMappingInfos($className) {
         $get2Method = array();
         $post2Method = array();
         $put2Method = array();
@@ -193,15 +207,15 @@ class Mapper {
         foreach ($methods as $method) {			
             if ($docComment = $method->getDocComment()) {
                 $methodName = $method->getName();
-                if ($MappingInfo = Mapper::getMappingInfo("POST", $methodName, $docComment)) {
+                if ($MappingInfo = $this->getMappingInfo("POST", $methodName, $docComment)) {
                     $post2Method[$MappingInfo->pattern] = $MappingInfo;
-                } else if ($MappingInfo = Mapper::getMappingInfo("GET", $methodName, $docComment)) {
+                } else if ($MappingInfo = $this->getMappingInfo("GET", $methodName, $docComment)) {
                     $get2Method[$MappingInfo->pattern] = $MappingInfo;
-                } else if ($MappingInfo = Mapper::getMappingInfo("PUT", $methodName, $docComment)) {
+                } else if ($MappingInfo = $this->getMappingInfo("PUT", $methodName, $docComment)) {
                     $put2Method[$MappingInfo->pattern] = $MappingInfo;
-                } else if ($MappingInfo = Mapper::getMappingInfo("PATCH", $methodName, $docComment)) {
+                } else if ($MappingInfo = $this->getMappingInfo("PATCH", $methodName, $docComment)) {
                     $patch2Method[$MappingInfo->pattern] = $MappingInfo;
-                } else if ($MappingInfo = Mapper::getMappingInfo("DELETE", $methodName, $docComment)) {
+                } else if ($MappingInfo = $this->getMappingInfo("DELETE", $methodName, $docComment)) {
                     $delete2Method[$MappingInfo->pattern] = $MappingInfo;
                 } else if (strpos($docComment, "@filter")) {
                     $filterMethods[] = $methodName;
@@ -224,7 +238,7 @@ class Mapper {
         ];
     }
 
-    private static function getMappingInfo(string $method, string $methodName, string $docComment) {
+    private function getMappingInfo(string $method, string $methodName, string $docComment) {
         switch ($method) {
             case "GET":
                 $tag = "@get";
@@ -297,6 +311,11 @@ class MappingInfo {
      *
      * @var string
      */
+    private $path;
+    /**
+     *
+     * @var string
+     */
     private $pattern;
     /**
      *
@@ -312,6 +331,11 @@ class MappingInfo {
     public function setMethodName(string $methodName)
     {
         $this->methodName = $methodName;
+    }
+
+    public function setPath(string $path)
+    {
+        $this->path = $path;
     }
 
     public function setPattern(string $pattern)
@@ -337,6 +361,11 @@ class MappingInfo {
     public function getMethodName(): string
     {
         return $this->methodName;
+    }
+
+    public function getPath(): string
+    {
+        return $this->path;
     }
 
     public function getPattern(): string

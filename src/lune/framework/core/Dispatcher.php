@@ -25,7 +25,7 @@ final class Dispatcher {
 
     public function __construct() {
         $this->isProd = ConfigUtils::getValue("Application", "env", "dev") === "prod";
-        $this->registry = Mapper::getReigistry($this->isProd);
+        $this->registry = (new Mapper())->getReigistry($this->isProd);
     }
 
     /**
@@ -43,7 +43,7 @@ final class Dispatcher {
                 if ($mappingInfo->hasPathVariables()) {
                     preg_match_all($this->patternToRegx($mappingInfo->getPattern()), $request->getUri(), $paramValueMatch);
                     $pathVariableNames = $mappingInfo->getPathVariableNames();
-                    $queryParams = &$this->request->getQueryParams();
+                    $queryParams = &$request->getQueryParams();
                     for ($index = 0; $index < count($pathVariableNames); $index++) {
                         $name = $pathVariableNames[$index];
                         $value = $paramValueMatch[$index + 1][0];
