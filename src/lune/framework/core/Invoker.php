@@ -2,19 +2,26 @@
 
 namespace lune\framework\core;
 
-use lune\framework\util\ReflectionUtils;
-use lune\framework\exception\InjectionException;
+use lune\framework\core\bind\DataBindingException;
 use lune\framework\exception\InitializationException;
+use lune\framework\exception\InjectionException;
 use lune\framework\request\UploadedFile;
 use lune\framework\request\UploadedFiles;
 use lune\framework\response\Response;
+use lune\framework\util\ReflectionUtils;
+use lune\framework\util\StringUtils;
+use ReflectionMethod;
+use ReflectionParameter;
+use ReflectionType;
 
 /**
  * 方法执行器
  */
-class Invoker {
+class Invoker
+{
 
-    public static function invokeMethod(object $object, \ReflectionMethod $method, array $data) {
+    public static function invokeMethod(object $object, ReflectionMethod $method, array $data)
+    {
         $paramNamesToInject = Invoker::getParamNamesToInject($method);
         if ($reflectParams = $method->getParameters()) {
             $params = [];
@@ -25,9 +32,9 @@ class Invoker {
                 $paramValue = null;
                 if (in_array($paramName, $paramNamesToInject)) {
                     $paramValue = Invoker::getInstanceToInject($method->getName(), $reflectParam);
-                } else if (array_key_exists($reflectParam->getName(), $data)) {
+                } else if (array_key_exists($paramName, $data)) {
                     $paramValue = Invoker::isBuiltin($paramType) ? $data[$paramName] : Invoker::dataToObj($data[$paramName], $paramType);
-                } else {
+                } else if (!Invoker::isBuiltin($paramType)) {
                     $paramValue = Invoker::dataToObj($data, $paramType);
                 }
                 if ($paramValue !== null) {
@@ -42,16 +49,15 @@ class Invoker {
                     $paramName = $reflectParam->getName();
                     $paramType = $reflectParam->getType();
                     $paramValue = null;
-                    if ($paramType && in_array($paramName, $paramNamesToInject)) {
+                    if (in_array($paramName, $paramNamesToInject)) {
                         $paramValue = Invoker::getInstanceToInject($method->getName(), $reflectParam);
                     } else if (array_key_exists($paramName, $data)) {
-        
-                        $paramValue = $paramType ? Invoker::dataToObj($data[$paramName], $paramType) : $data[$paramName];
+                        $paramValue = Invoker::isBuiltin($paramType) ? $data[$paramName] : Invoker::dataToObj($data[$paramName], $paramType);
                     }
                     if ($paramValue !== null) {
                         $params[] = $paramValue;
                     } else if (!$reflectParam->isDefaultValueAvailable()) {
-                        return Response::badRequest("Param required: " . $reflectParam->getName());	
+                        return Response::badRequest("Param required: " . $reflectParam->getName());
                     }
                 }
             }
@@ -59,18 +65,39 @@ class Invoker {
         return $params ? $method->invokeArgs($object, $params) : $method->invoke($object);
     }
 
-    private static function dataToObj($data, \ReflectionType $type) {
+    private static function dataToObj($data, ReflectionType $type)
+    {
         if (is_array($data) && !empty($data)) {
             // For higher version of PHP, ReflectionType::getName() is avaliable.
             $reflectClass = ReflectionUtils::getClass($type->__toString());
             $instance = $reflectClass->newInstance();
-            foreach ($reflectClass->getProperties() as $property) {
-                $propertyName = $property->getName();
-                if (is_array($data) && array_key_exists($propertyName, $data)) {
-                    $property->setValue($instance, $data[$propertyName]);
+            if (method_exists(ReflectionType::class, "getType")) {
+                foreach ($reflectClass->getProperties() as $property) {
+                    $propertyName = $property->getName();
+                    if (is_array($data) && array_key_exists($propertyName, $data)) {
+                        $property->setValue($instance, $data[$propertyName]);
+                    }
+                }
+            } else {
+                foreach ($reflectClass->getProperties() as $property) {
+                    $propertyName = $property->getName();
+                    if (is_array($data) && array_key_exists($propertyName, $data)) {
+                        $writeMethodName = "set" . StringUtils::capitalize($propertyName);
+                        if ($reflectClass->hasMethod($writeMethodName)) {
+                            $writeMethod = $reflectClass->getMethod($writeMethodName);
+                            $reflectParams = $writeMethod->getParameters();
+                            if (($paramCount = count($reflectParams)) !== 1) {
+                                throw new DataBindingException("Expected one parameter for write method of $propertyName, get $paramCount");
+                            }
+                            $params = [$data[$propertyName]];
+                            $writeMethod->invokeArgs($instance, $params);
+                        }
+                    }
                 }
             }
-        }        
+            
+            return $instance;
+        }
         return null;
     }
 
@@ -79,11 +106,13 @@ class Invoker {
      */
     const LUNE_BUILTIN = [UploadedFile::class, UploadedFiles::class];
 
-    private static function isBuiltin(\ReflectionType $type) {
+    private static function isBuiltin(ReflectionType $type)
+    {
         return $type->isBuiltin() || in_array($type->__toString(), Invoker::LUNE_BUILTIN);
     }
 
-    public static function newInstance(string $className) {
+    public static function newInstance(string $className)
+    {
         $class = ReflectionUtils::getClass($className);
         $constructor = $class->getConstructor();
         if ($constructor != null) {
@@ -96,7 +125,7 @@ class Invoker {
                     $paramName = $reflectParam->getName();
                     $paramType = $reflectParam->getType();
                     $paramValue = null;
-                    if ($paramType && in_array($paramName, $paramNamesToInject)) {
+                    if (in_array($paramName, $paramNamesToInject)) {
                         $paramValue = Invoker::getInstanceToInject($constructor->getName(), $reflectParam);
                     }
                     if ($paramValue !== null) {
@@ -111,7 +140,8 @@ class Invoker {
         return $class->newInstance();
     }
 
-    private static function getParamNamesToInject(\ReflectionMethod $method) {
+    public static function getParamNamesToInject(ReflectionMethod $method)
+    {
         $paramNamesToInject = [];
         $injectedTagValue = ReflectionUtils::getDocCommentTag($method->getDocComment(), "@injected");
         if ($injectedTagValue) {
@@ -120,19 +150,27 @@ class Invoker {
         return $paramNamesToInject;
     }
 
-    private static function getInstanceToInject(string $methodName, \ReflectionParameter $reflectParam) {
-        $injectionClass = $reflectParam->getClass();
-        $injectionClassName = $injectionClass->getName();
-        $injectionInstance = null;
-        try {
-            $injectionInstance = Container::get($injectionClassName);
-        } catch (InitializationException $e) {
-            throw new InjectionException($reflectParam->getName(), $methodName, $e->getMessage());
+    public static function getInstanceToInject(string $methodName, ReflectionParameter $reflectParam)
+    {
+        if ($injectionClass = $reflectParam->getType()) {
+            if ($injectionClass->isBuiltin()) {
+                throw new InjectionException($reflectParam->getName(), $methodName, "Built-in types cannot be injected");
+            }
+            $injectionClassName = $injectionClass->getName();
+            $injectionInstance = null;
+            try {
+                $injectionInstance = Container::get($injectionClassName);
+            } catch (InitializationException $e) {
+                throw new InjectionException($reflectParam->getName(), $methodName, $e->getMessage());
+            }
+            return $injectionInstance;
+        } else {
+            throw new InjectionException($reflectParam->getName(), $methodName, "Type is required for param to be injected");
         }
-        return $injectionInstance;
     }
 
-    public static function invokeFilterMethods($controller, $filterMethodNames, &$__metadata__) {
+    public static function invokeFilterMethods($controller, $filterMethodNames, &$__metadata__)
+    {
         foreach ($filterMethodNames as $filterMethodName) {
             $params[] = &$__metadata__;
             $filterMethod = ReflectionUtils::getClassMethod($controller, $filterMethodName);
@@ -140,7 +178,8 @@ class Invoker {
         }
     }
 
-    public static function invokeInterceptorMethods($controller, $interceptorMethodNames, \ReflectionMethod $method, $data) {
+    public static function invokeInterceptorMethods($controller, $interceptorMethodNames, ReflectionMethod $method, $data)
+    {
         foreach ($interceptorMethodNames as $methodName => $withTag) {
             $execute = true;
             if ($withTag && empty(strpos($method->getDocComment(), $withTag))) {
@@ -148,7 +187,7 @@ class Invoker {
             }
             if ($execute) {
                 $data["__metadata__"] = $data;
-                $data["__method__"] =  $method;
+                $data["__method__"] = $method;
                 if ($result = Invoker::invokeMethod($controller, ReflectionUtils::getClassMethod($controller, $methodName), $data)) {
                     return $result;
                 }
